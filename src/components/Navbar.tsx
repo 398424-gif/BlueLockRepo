@@ -114,52 +114,62 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
 
             {/* User Session */}
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 transition-colors"
-                >
-                  <img
-                    src={user.avatar}
-                    alt={user.username}
-                    className="w-7 h-7 rounded-lg object-cover border border-cyan-400/50"
-                  />
-                  <div className="text-left">
-                    <span className="text-xs font-bold text-slate-200 block leading-tight">
-                      {user.username}
-                    </span>
-                    <span className="text-[9px] font-mono text-cyan-400 uppercase leading-none block">
-                      {user.role}
-                    </span>
-                  </div>
-                </button>
-
-                {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl p-2 animate-fade-in z-50">
-                    <div className="px-3 py-2 border-b border-slate-800 text-xs">
-                      <div className="font-bold text-slate-200">{user.username}</div>
-                      <div className="text-slate-400 truncate text-[11px] font-mono">{user.email}</div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <button
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    className="flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 transition-colors"
+                  >
+                    <img
+                      src={user.avatar}
+                      alt={user.username}
+                      className="w-7 h-7 rounded-lg object-cover border border-cyan-400/50"
+                    />
+                    <div className="text-left">
+                      <span className="text-xs font-bold text-slate-200 block leading-tight">
+                        {user.username}
+                      </span>
+                      <span className="text-[9px] font-mono text-cyan-400 uppercase leading-none block">
+                        {user.role}
+                      </span>
                     </div>
-                    <button
-                      onClick={() => {
-                        handleNav('builder');
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-800 flex items-center gap-2 mt-1"
-                    >
-                      <Users className="w-3.5 h-3.5 text-cyan-400" /> My Saved Formations
-                    </button>
-                    <button
-                      onClick={() => {
-                        logout();
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 mt-1"
-                    >
-                      <LogOut className="w-3.5 h-3.5" /> Log Out
-                    </button>
-                  </div>
-                )}
+                  </button>
+
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl p-2 animate-fade-in z-50">
+                      <div className="px-3 py-2 border-b border-slate-800 text-xs">
+                        <div className="font-bold text-slate-200">{user.username}</div>
+                        <div className="text-slate-400 truncate text-[11px] font-mono">{user.email}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleNav('builder');
+                          setUserDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-300 hover:bg-slate-800 flex items-center gap-2 mt-1"
+                      >
+                        <Users className="w-3.5 h-3.5 text-cyan-400" /> My Saved Formations
+                      </button>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setUserDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 mt-1"
+                      >
+                        <LogOut className="w-3.5 h-3.5" /> Log Out to Gate
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={logout}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-rose-950/40 border border-slate-800 hover:border-rose-500/50 text-slate-400 hover:text-rose-300 text-xs font-mono transition-all"
+                  title="Log out and return to Blue Login Gate"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             ) : (
               <button

@@ -25,9 +25,9 @@ export const AuthModal: React.FC = () => {
           setSubmitting(false);
           return;
         }
-        const ok = await login(identifier.trim());
-        if (!ok) {
-          setError('Invalid credentials or user not found');
+        const res = await login(identifier.trim());
+        if (!res.success) {
+          setError(res.message || 'Invalid credentials or user not found');
         }
       } else {
         if (!username.trim() || !email.trim()) {
@@ -35,9 +35,9 @@ export const AuthModal: React.FC = () => {
           setSubmitting(false);
           return;
         }
-        const ok = await register(username.trim(), email.trim());
-        if (!ok) {
-          setError('Registration failed. Email may already be registered.');
+        const res = await register(username.trim(), email.trim());
+        if (!res.success) {
+          setError(res.message || 'Registration failed. Email may already be registered.');
         }
       }
     } catch {

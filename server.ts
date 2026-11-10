@@ -1,4 +1,5 @@
 import express from 'express';
+import { createServer } from 'node:http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,7 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = parseInt(process.env.PORT || '3000', 10);
+const httpServer = createServer(app);
+const port = parseInt(process.env.PORT || '5000', 10);
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
@@ -400,58 +402,105 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 app.post('/api/auth/register', (req, res) => {
-  const { username, email } = req.body;
-  if (!username?.trim() || !email?.trim()) {
-    return res.status(400).json({ success: false, message: 'Username and email are required' });
+  const { username, email, phone, password } = req.body;
+  if (!username?.trim()) {
+    return res.status(400).json({ success: false, message: 'Username is required' });
   }
 
-  const existing = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-  if (existing) {
-    return res.status(409).json({ success: false, message: 'An account with this email already exists' });
+  const cleanUser = username.trim();
+  const cleanEmail = email?.trim() ? email.trim().toLowerCase() : '';
+  const cleanPhone = phone?.trim() ? phone.trim().replace(/[^0-9+]/g, '') : '';
+  const cleanPass = password?.trim() || '';
+
+  if (!cleanEmail && !cleanPhone) {
+    return res.status(400).json({ success: false, message: 'Please provide either an email or phone number' });
+  }
+
+  // Check unique username
+  const existingUser = db.users.find((u) => u.username.toLowerCase() === cleanUser.toLowerCase());
+  if (existingUser) {
+    return res.status(409).json({ success: false, message: 'This username is already taken. Please pick another.' });
+  }
+
+  // Check unique email if provided
+  if (cleanEmail) {
+    const existingEmail = db.users.find((u) => u.email && u.email.toLowerCase() === cleanEmail);
+    if (existingEmail) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists' });
+    }
+  }
+
+  // Check unique phone if provided
+  if (cleanPhone) {
+    const existingPhone = db.users.find((u) => u.phone && u.phone === cleanPhone);
+    if (existingPhone) {
+      return res.status(409).json({ success: false, message: 'An account with this phone number already exists' });
+    }
   }
 
   const newUser: User = {
     id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-    username: username.trim(),
-    email: email.trim().toLowerCase(),
-    avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}`,
+    username: cleanUser,
+    email: cleanEmail || `${cleanUser.toLowerCase()}@bluelock.jp`,
+    phone: cleanPhone || undefined,
+    password: cleanPass || undefined,
+    avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanUser)}`,
     role: 'egoist',
     created_at: new Date().toISOString(),
   };
 
   db.users.push(newUser);
   saveDB();
-  res.status(201).json({ success: true, user: newUser });
+
+  // Omit password from response
+  const { password: _, ...userWithoutPass } = newUser;
+  res.status(201).json({ success: true, user: userWithoutPass });
 });
 
 app.post('/api/auth/login', (req, res) => {
-  const { email, username } = req.body;
-  let user: User | undefined;
-  if (email) {
-    user = db.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-  } else if (username) {
-    user = db.users.find((u) => u.username.toLowerCase() === username.toLowerCase());
+  const { identifier, email, username, phone, password } = req.body;
+  const lookup = (identifier || email || username || phone || '').trim();
+  const inputPass = (password || '').trim();
+
+  if (!lookup) {
+    return res.status(400).json({ success: false, message: 'Please enter your username, email, or phone number' });
   }
+
+  const lookupLower = lookup.toLowerCase();
+  const cleanPhoneLookup = lookup.replace(/[^0-9+]/g, '');
+
+  let user = db.users.find((u) => {
+    if (u.username.toLowerCase() === lookupLower) return true;
+    if (u.email && u.email.toLowerCase() === lookupLower) return true;
+    if (u.phone && cleanPhoneLookup && u.phone === cleanPhoneLookup) return true;
+    return false;
+  });
 
   if (!user) {
-    // Convenience auto-provision for test accounts or demo
-    if (email && email.includes('@')) {
-      const newUser: User = {
-        id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        username: (username || email.split('@')[0]).trim(),
-        email: email.trim().toLowerCase(),
-        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(email)}`,
-        role: 'egoist',
-        created_at: new Date().toISOString(),
-      };
-      db.users.push(newUser);
-      saveDB();
-      return res.json({ success: true, user: newUser });
-    }
-    return res.status(401).json({ success: false, message: 'Invalid credentials or user not found' });
+    // If user does not exist yet, allow seamless auto-creation if valid format
+    const autoUser: User = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      username: lookup.includes('@') ? lookup.split('@')[0] : lookup,
+      email: lookup.includes('@') ? lookupLower : `${lookupLower.replace(/\s+/g, '_')}@bluelock.jp`,
+      phone: cleanPhoneLookup || undefined,
+      password: inputPass || undefined,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(lookup)}`,
+      role: 'egoist',
+      created_at: new Date().toISOString(),
+    };
+    db.users.push(autoUser);
+    saveDB();
+    const { password: _, ...safeUser } = autoUser;
+    return res.json({ success: true, user: safeUser });
   }
 
-  res.json({ success: true, user });
+  // Check password if set on account and provided
+  if (user.password && inputPass && user.password !== inputPass) {
+    return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
+  }
+
+  const { password: _, ...safeUser } = user;
+  res.json({ success: true, user: safeUser });
 });
 
 // User likes status
@@ -466,7 +515,7 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: { server: httpServer } },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -477,7 +526,7 @@ async function startServer() {
     });
   }
 
-  app.listen(port, '0.0.0.0', () => {
+  httpServer.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Blue Lock Egoist Server running on port ${port}`);
   });
 }
