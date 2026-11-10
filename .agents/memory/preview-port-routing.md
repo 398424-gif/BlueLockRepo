@@ -3,8 +3,8 @@ name: Preview port routing
 description: Replit forwarding behavior when Vite opens a separate live-reload port.
 ---
 
-Check the forwarded port mapping if the public preview returns HTTP 426 while the app server works.
+Check the exact URL shown in the user's Preview address bar, including its port, against the forwarded external port. A local screenshot does not verify that URL.
 
-**Why:** During import setup, Replit automatically assigned the default external route to Vite's separate WebSocket listener instead of Express. A healthy workflow alone did not prove that the public preview reached the app.
+**Why:** During import setup, Replit automatically assigned the default external route to Vite's separate WebSocket listener instead of Express. After fixing that, the user's Preview still selected external port 5000 while forwarding used port 80: the root development URL worked but the user's port-specific URL returned 502.
 
-**How to apply:** Keep live reload on the same HTTP listener when possible, and verify the public development URL as well as the local screenshot before declaring import setup complete.
+**How to apply:** Keep live reload on the same HTTP listener when possible. Match forwarding to the Preview's selected external port, and test that exact public URL as well as the local screenshot before declaring preview issues fixed.
