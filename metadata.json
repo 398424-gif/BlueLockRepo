@@ -1,0 +1,6 @@
+{
+  "name": "BLUE LOCK: Egoist Scout & Tactics Hub",
+  "description": "Comprehensive Blue Lock striker scout hub, 6-axis ego radar dual comparison, tactical squad chemistry lineup builder, tier list engine, and psychological breakdown center.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
