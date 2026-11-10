@@ -4,8 +4,13 @@ import { User } from '../types.ts';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (emailOrUsername: string) => Promise<boolean>;
-  register: (username: string, email: string) => Promise<boolean>;
+  login: (identifier: string, password?: string) => Promise<{ success: boolean; message?: string }>;
+  register: (
+    usernameOrData: string | { username: string; email?: string; phone?: string; password?: string },
+    email?: string,
+    phone?: string,
+    password?: string
+  ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   isAuthModalOpen: boolean;
   openAuthModal: (promptMessage?: string) => void;
@@ -31,31 +36,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = await res.json();
         if (data.success && data.user) {
           setUser(data.user);
-          setLoading(false);
-          return;
+        } else {
+          localStorage.removeItem('bl_user_id');
+          setUser(null);
         }
-      }
-
-      // Default demo login if first time
-      const demoRes = await fetch('/api/auth/me', {
-        headers: { 'x-user-id': 'user-demo-egoist' },
-      });
-      const demoData = await demoRes.json();
-      if (demoData.success && demoData.user) {
-        setUser(demoData.user);
-        localStorage.setItem('bl_user_id', demoData.user.id);
+      } else {
+        setUser(null);
       }
     } catch (e) {
-      console.warn('Auth check failed, operating in offline/demo mode:', e);
-      // Fallback local user
-      setUser({
-        id: 'user-demo-egoist',
-        username: 'Isagi_Egoist',
-        email: 'egoist@bluelock.jp',
-        avatar: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=100&auto=format&fit=crop&q=80',
-        role: 'egoist',
-        created_at: new Date().toISOString(),
-      });
+      console.warn('Auth check failed:', e);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -65,11 +55,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkUser();
   }, [checkUser]);
 
-  const login = async (emailOrUsername: string): Promise<boolean> => {
+  const login = async (identifier: string, password?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const isEmail = emailOrUsername.includes('@');
-      const body = isEmail ? { email: emailOrUsername } : { username: emailOrUsername };
       const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setUser(data.user);
+        localStorage.setItem('bl_user_id', data.user.id);
+        setIsAuthModalOpen(false);
+        return { success: true };
+      }
+      return { success: false, message: data.message || 'Login failed' };
+    } catch (e) {
+      console.error('Login error:', e);
+      return { success: false, message: 'Server connection failed' };
+    }
+  };
+
+  const register = async (
+    usernameOrData: string | { username: string; email?: string; phone?: string; password?: string },
+    emailParam?: string,
+    phoneParam?: string,
+    passwordParam?: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      let body: any;
+      if (typeof usernameOrData === 'object') {
+        body = usernameOrData;
+      } else {
+        body = {
+          username: usernameOrData,
+          email: emailParam,
+          phone: phoneParam,
+          password: passwordParam,
+        };
+      }
+
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -79,33 +105,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         localStorage.setItem('bl_user_id', data.user.id);
         setIsAuthModalOpen(false);
-        return true;
+        return { success: true };
       }
-      return false;
-    } catch (e) {
-      console.error('Login error:', e);
-      return false;
-    }
-  };
-
-  const register = async (username: string, email: string): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email }),
-      });
-      const data = await res.json();
-      if (data.success && data.user) {
-        setUser(data.user);
-        localStorage.setItem('bl_user_id', data.user.id);
-        setIsAuthModalOpen(false);
-        return true;
-      }
-      return false;
+      return { success: false, message: data.message || 'Registration failed' };
     } catch (e) {
       console.error('Register error:', e);
-      return false;
+      return { success: false, message: 'Server connection failed' };
     }
   };
 
