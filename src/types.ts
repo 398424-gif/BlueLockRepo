@@ -48,6 +48,8 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  phone?: string;
+  password?: string;
   avatar: string;
   role: 'egoist' | 'coach' | 'scout';
   created_at: string;
