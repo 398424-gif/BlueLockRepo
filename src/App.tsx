@@ -19,6 +19,9 @@ import { api } from './services/api.ts';
 import { PLAYERS_SEED, INITIAL_SITE_CONFIG, INITIAL_PUBLIC_TIER_LISTS } from './data/seedData.ts';
 import { Shield, Sparkles, Heart } from 'lucide-react';
 
+import { useAuth } from './context/AuthContext.tsx';
+import { BlueLoginView } from './views/BlueLoginView.tsx';
+
 export default function App() {
   return (
     <AuthProvider>
@@ -30,6 +33,7 @@ export default function App() {
 }
 
 function AppContent() {
+  const { user, loading: authLoading } = useAuth();
   // Navigation State
   const [currentView, setCurrentView] = useState<string>('home');
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -167,76 +171,91 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-[#060911] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950 cyber-grid">
-      <Navbar currentView={currentView} onNavigate={handleNavigate} />
+      {authLoading ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-32 space-y-4">
+          <div className="w-12 h-12 rounded-xl border-2 border-cyan-400 border-t-transparent animate-spin glow-cyan" />
+          <p className="text-xs font-mono tracking-widest text-cyan-400 uppercase">
+            Verifying Blue Lock Security Credentials...
+          </p>
+        </div>
+      ) : !user ? (
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <BlueLoginView onLoginSuccess={() => handleNavigate('home')} />
+        </main>
+      ) : (
+        <>
+          <Navbar currentView={currentView} onNavigate={handleNavigate} />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-        {loading ? (
-          <div className="py-32 flex flex-col items-center justify-center space-y-4">
-            <div className="w-12 h-12 rounded-xl border-2 border-cyan-400 border-t-transparent animate-spin glow-cyan" />
-            <p className="text-xs font-mono tracking-widest text-cyan-400 uppercase">
-              Initializing Egoist Tactical Data...
-            </p>
-          </div>
-        ) : (
-          <>
-            {currentView === 'home' && (
-              <HomeView
-                players={players}
-                tierLists={tierLists}
-                siteConfig={siteConfig}
-                onNavigate={handleNavigate}
-                onSelectPlayer={handleSelectPlayer}
-              />
-            )}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+            {loading ? (
+              <div className="py-32 flex flex-col items-center justify-center space-y-4">
+                <div className="w-12 h-12 rounded-xl border-2 border-cyan-400 border-t-transparent animate-spin glow-cyan" />
+                <p className="text-xs font-mono tracking-widest text-cyan-400 uppercase">
+                  Initializing Egoist Tactical Data...
+                </p>
+              </div>
+            ) : (
+              <>
+                {currentView === 'home' && (
+                  <HomeView
+                    players={players}
+                    tierLists={tierLists}
+                    siteConfig={siteConfig}
+                    onNavigate={handleNavigate}
+                    onSelectPlayer={handleSelectPlayer}
+                  />
+                )}
 
-            {currentView === 'strikers' && (
-              <ScoutHubView
-                players={players}
-                onSelectPlayer={handleSelectPlayer}
-                onCompare={handleCompareWithPlayer}
-                onLikeToggle={handleLikeToggle}
-                likedPlayerIds={likedPlayerIds}
-              />
-            )}
+                {currentView === 'strikers' && (
+                  <ScoutHubView
+                    players={players}
+                    onSelectPlayer={handleSelectPlayer}
+                    onCompare={handleCompareWithPlayer}
+                    onLikeToggle={handleLikeToggle}
+                    likedPlayerIds={likedPlayerIds}
+                  />
+                )}
 
-            {currentView === 'striker-detail' && selectedPlayer && (
-              <PlayerDetailView
-                player={selectedPlayer}
-                onBack={() => handleNavigate('strikers')}
-                onCompareWithPlayer={handleCompareWithPlayer}
-                onLikeToggle={handleLikeToggle}
-                isLiked={likedPlayerIds.has(selectedPlayer.id)}
-              />
-            )}
+                {currentView === 'striker-detail' && selectedPlayer && (
+                  <PlayerDetailView
+                    player={selectedPlayer}
+                    onBack={() => handleNavigate('strikers')}
+                    onCompareWithPlayer={handleCompareWithPlayer}
+                    onLikeToggle={handleLikeToggle}
+                    isLiked={likedPlayerIds.has(selectedPlayer.id)}
+                  />
+                )}
 
-            {currentView === 'compare' && (
-              <EgoDuelView
-                players={players}
-                initialP1={compareP1}
-                initialP2={compareP2}
-                onSelectPlayer={handleSelectPlayer}
-              />
-            )}
+                {currentView === 'compare' && (
+                  <EgoDuelView
+                    players={players}
+                    initialP1={compareP1}
+                    initialP2={compareP2}
+                    onSelectPlayer={handleSelectPlayer}
+                  />
+                )}
 
-            {currentView === 'builder' && (
-              <SquadBuilderView
-                players={players}
-                onSelectPlayer={handleSelectPlayer}
-                onRefreshData={loadData}
-              />
-            )}
+                {currentView === 'builder' && (
+                  <SquadBuilderView
+                    players={players}
+                    onSelectPlayer={handleSelectPlayer}
+                    onRefreshData={loadData}
+                  />
+                )}
 
-            {currentView === 'tier-list-view' && activeTierListId && (
-              <PublicTierListView
-                tierListId={activeTierListId}
-                players={players}
-                onBack={() => handleNavigate('home')}
-                onSelectPlayer={handleSelectPlayer}
-              />
+                {currentView === 'tier-list-view' && activeTierListId && (
+                  <PublicTierListView
+                    tierListId={activeTierListId}
+                    players={players}
+                    onBack={() => handleNavigate('home')}
+                    onSelectPlayer={handleSelectPlayer}
+                  />
+                )}
+              </>
             )}
-          </>
-        )}
-      </main>
+          </main>
+        </>
+      )}
 
       {/* Global Footer */}
       <footer className="border-t border-slate-900 bg-slate-950/80 mt-12 py-8">
