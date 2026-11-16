@@ -1180,6 +1180,16 @@
       "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=teststriker",
       "role": "egoist",
       "created_at": "2026-11-10T18:52:20.788Z"
+    },
+    {
+      "id": "user-1794855997160-nlv7",
+      "username": "Apple",
+      "email": "apple@bluelock.jp",
+      "phone": "7025024243",
+      "password": "Apple0!",
+      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Apple",
+      "role": "egoist",
+      "created_at": "2026-11-16T19:06:37.160Z"
     }
   ],
   "likes": [
