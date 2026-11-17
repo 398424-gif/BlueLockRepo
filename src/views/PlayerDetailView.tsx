@@ -3,6 +3,7 @@ import { Player } from '../types.ts';
 import { EgoRadarChart } from '../components/EgoRadarChart.tsx';
 import { AdaptabilityGauge } from '../components/AdaptabilityGauge.tsx';
 import { UserNotesModule } from '../components/UserNotesModule.tsx';
+import { CharacterPanel } from '../components/CharacterPanel.tsx';
 import { useSpoilers } from '../context/SpoilerContext.tsx';
 import {
   ArrowLeft,
@@ -96,18 +97,13 @@ export const PlayerDetailView: React.FC<PlayerDetailViewProps> = ({
       }`}>
         <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between">
           <div className="flex items-center gap-5">
-            {/* Hexagon/Cyber styled avatar with animated aura when awakened */}
-            <div className={`relative shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 bg-slate-950 ${
-              isAwakened ? 'border-purple-400 glow-cyan ring-4 ring-purple-500/30' : 'border-cyan-400 glow-cyan-sm'
-            }`}>
-              <img
-                src={player.portrait}
-                alt={player.name}
-                className="w-full h-full object-cover"
+            {/* Character Colored Panel with Awakening State */}
+            <div className="relative shrink-0">
+              <CharacterPanel
+                player={player}
+                size="lg"
+                isAwakened={isAwakened}
               />
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-slate-950/90 text-slate-100 text-[10px] font-mono font-bold border border-slate-700">
-                #{player.jersey_number || 11}
-              </div>
             </div>
 
             <div>

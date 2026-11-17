@@ -1,6 +1,7 @@
 import React from 'react';
 import { Player } from '../types.ts';
 import { useSpoilers } from '../context/SpoilerContext.tsx';
+import { CharacterPanel } from './CharacterPanel.tsx';
 import { Eye, Swords, Heart, Zap, Sparkles, ChevronRight, ShieldAlert } from 'lucide-react';
 
 interface PlayerCardProps {
@@ -91,15 +92,15 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
 
         {/* Portrait & Rating Section */}
         <div className="relative flex items-center gap-3.5 mb-3">
-          {/* Hexagon/Cyber styled avatar */}
-          <div className="relative shrink-0 w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden border-2 border-slate-700 group-hover:border-cyan-400 transition-colors bg-slate-950">
-            <img
-              src={player.portrait}
-              alt={player.name}
-              className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isSpoilerPlayer ? 'filter blur-md brightness-50' : ''}`}
+          {/* Character Colored Panel */}
+          <div className="relative shrink-0">
+            <CharacterPanel
+              player={player}
+              size="md"
+              className={isSpoilerPlayer ? 'filter blur-md brightness-50' : ''}
             />
             {isSpoilerPlayer && (
-              <div className="absolute inset-0 flex items-center justify-center text-rose-400 bg-black/60">
+              <div className="absolute inset-0 flex items-center justify-center text-rose-400 bg-black/60 rounded-2xl">
                 <ShieldAlert className="w-6 h-6" />
               </div>
             )}

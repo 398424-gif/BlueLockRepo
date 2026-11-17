@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Player } from '../types.ts';
 import { EgoRadarChart } from '../components/EgoRadarChart.tsx';
+import { CharacterPanel } from '../components/CharacterPanel.tsx';
 import {
   Swords,
   Shuffle,
@@ -215,8 +216,8 @@ export const EgoDuelView: React.FC<EgoDuelViewProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-cyan-400 shrink-0 bg-slate-950">
-              <img src={player1.portrait} alt={player1.name} className="w-full h-full object-cover" />
+            <div className="shrink-0">
+              <CharacterPanel player={player1} size="md" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
@@ -259,8 +260,8 @@ export const EgoDuelView: React.FC<EgoDuelViewProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-rose-400 shrink-0 bg-slate-950">
-              <img src={player2.portrait} alt={player2.name} className="w-full h-full object-cover" />
+            <div className="shrink-0">
+              <CharacterPanel player={player2} size="md" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">

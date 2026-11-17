@@ -148,6 +148,7 @@ export const api = {
   async saveTierList(tierListData: {
     title: string;
     tiers: Record<string, string[]>;
+    tier_meta?: { label: string; color: string }[];
     user_id: string;
     username: string;
     is_public: boolean;

@@ -40,6 +40,7 @@ function AppContent() {
   const [compareP1, setCompareP1] = useState<string>('isagi-yoichi');
   const [compareP2, setCompareP2] = useState<string>('michael-kaiser');
   const [activeTierListId, setActiveTierListId] = useState<string | null>(null);
+  const [builderTab, setBuilderTab] = useState<'lineup' | 'tierlist' | 'saved'>('lineup');
 
   // Global Data State
   const [players, setPlayers] = useState<Player[]>(PLAYERS_SEED);
@@ -101,6 +102,10 @@ function AppContent() {
       setActiveTierListId(tierListParam);
       setCurrentView('tier-list-view');
     } else if (viewParam) {
+      const tabParam = params.get('tab');
+      if (viewParam === 'builder' && (tabParam === 'lineup' || tabParam === 'tierlist' || tabParam === 'saved')) {
+        setBuilderTab(tabParam);
+      }
       setCurrentView(viewParam);
     }
   }, [players]);
@@ -123,6 +128,12 @@ function AppContent() {
     } else if (view === 'tier-list-view' && params?.id) {
       setActiveTierListId(params.id);
       url.searchParams.set('tierlist', params.id);
+    } else if (view === 'builder') {
+      const nextTab = (params?.tab as 'lineup' | 'tierlist' | 'saved') || 'lineup';
+      setBuilderTab(nextTab);
+      url.searchParams.set('view', 'builder');
+      if (params?.tab) url.searchParams.set('tab', params.tab);
+      else url.searchParams.delete('tab');
     } else {
       url.searchParams.set('view', view);
     }
@@ -238,6 +249,7 @@ function AppContent() {
                 {currentView === 'builder' && (
                   <SquadBuilderView
                     players={players}
+                    initialTab={builderTab}
                     onSelectPlayer={handleSelectPlayer}
                     onRefreshData={loadData}
                   />

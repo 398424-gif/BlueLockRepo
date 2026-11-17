@@ -1,8 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Papa from 'papaparse';
 import confetti from 'canvas-confetti';
 import { Player, UserLineup, UserTierList } from '../types.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { CharacterPanel } from '../components/CharacterPanel.tsx';
+import {
+  TierListMaker,
+  TierRowState,
+  DEFAULT_TIER_ROWS,
+  hydrateTierRows,
+} from '../components/TierListMaker.tsx';
 import { api } from '../services/api.ts';
 import { FORMATIONS, FormationKey, calculateSquadChemistry } from '../utils/squadEngine.ts';
 import {
@@ -23,18 +30,25 @@ import {
 
 interface SquadBuilderViewProps {
   players: Player[];
+  initialTab?: 'lineup' | 'tierlist' | 'saved';
   onSelectPlayer: (player: Player) => void;
   onRefreshData?: () => void;
 }
 
 export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
   players,
+  initialTab = 'lineup',
+  onSelectPlayer,
   onRefreshData,
 }) => {
   const { user, openAuthModal } = useAuth();
 
   // Mode: 'lineup' | 'tierlist' | 'saved'
-  const [activeTab, setActiveTab] = useState<'lineup' | 'tierlist' | 'saved'>('lineup');
+  const [activeTab, setActiveTab] = useState<'lineup' | 'tierlist' | 'saved'>(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // LINEUP BUILDER STATE
   const [formationKey, setFormationKey] = useState<FormationKey>('4-3-3');
@@ -42,15 +56,11 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
   const [lineupTitle, setLineupTitle] = useState<string>('My Neo Egoist XI');
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
 
-  // TIER LIST ENGINE STATE
-  const [tierListTitle, setTierListTitle] = useState<string>('Neo Egoist Ultimate Tier');
-  const [tierRows, setTierRows] = useState<Record<string, string[]>>({
-    'S+': ['isagi-yoichi', 'michael-kaiser', 'rin-itoshi'],
-    'S': ['shoei-barou', 'meguru-bachira', 'hyoma-chigiri'],
-    'A': ['kunigami-rensuke', 'reo-mikage', 'seishiro-nagi'],
-    'B': ['tabito-karasu', 'kenyu-yukimiya'],
-    'C': ['eita-otoya'],
-  });
+  // TIER LIST ENGINE STATE (TierMaker S/A/B/C/D style)
+  const [tierListTitle, setTierListTitle] = useState<string>('All Blue Lock Players Tier List');
+  const [tierRows, setTierRows] = useState<TierRowState[]>(() =>
+    DEFAULT_TIER_ROWS.map((r) => ({ ...r, playerIds: [] }))
+  );
   const [isPublicTierList, setIsPublicTierList] = useState<boolean>(true);
 
   // SAVED USER ITEMS STATE
@@ -165,34 +175,29 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
     showToast('Tactical Lineup exported as CSV!');
   };
 
-  // TIER LIST ACTIONS
-  const handleAddPlayerToTier = (tier: string, playerId: string) => {
-    // Remove from other tiers first
-    const updated = { ...tierRows };
-    Object.keys(updated).forEach((k) => {
-      updated[k] = updated[k].filter((id) => id !== playerId);
-    });
-    updated[tier] = [...(updated[tier] || []), playerId];
-    setTierRows(updated);
-  };
-
-  const handleRemoveFromTier = (tier: string, playerId: string) => {
-    setTierRows({
-      ...tierRows,
-      [tier]: tierRows[tier].filter((id) => id !== playerId),
-    });
-  };
-
+  // TIER LIST SAVE
   const handleSaveTierList = async () => {
     if (!user) {
       openAuthModal('Sign in to publish or save your custom tier list.');
       return;
     }
 
+    const tiersRecord: Record<string, string[]> = {};
+    const tierMeta: { label: string; color: string }[] = [];
+    tierRows.forEach((row, idx) => {
+      let label = row.label.trim() || `Tier ${idx + 1}`;
+      if (Object.prototype.hasOwnProperty.call(tiersRecord, label)) {
+        label = `${label} (${idx + 1})`;
+      }
+      tiersRecord[label] = row.playerIds;
+      tierMeta.push({ label, color: row.color });
+    });
+
     try {
       await api.saveTierList({
         title: tierListTitle.trim() || 'My Custom Tier List',
-        tiers: tierRows as Record<string, string[]>,
+        tiers: tiersRecord,
+        tier_meta: tierMeta,
         user_id: user.id,
         username: user.username,
         is_public: isPublicTierList,
@@ -205,36 +210,6 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
       const msg = err instanceof Error ? err.message : 'Failed to save tier list';
       showToast(msg, 'error');
     }
-  };
-
-  const handleExportTierListCSV = () => {
-    const csvData: any[] = [];
-    Object.entries(tierRows).forEach(([tier, playerIds]) => {
-      playerIds.forEach((pid) => {
-        const player = players.find((p) => p.id === pid);
-        if (player) {
-          csvData.push({
-            Tier: tier,
-            Name: player.name,
-            Team: player.team,
-            Position: player.position,
-            Overall: player.overall_rating,
-            PrimaryWeapon: player.primary_weapon,
-          });
-        }
-      });
-    });
-
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${tierListTitle.replace(/\s+/g, '_')}_TierList.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Tier List exported as CSV!');
   };
 
   // Load user saved lineups/tier lists
@@ -466,17 +441,13 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
                         <div className="relative group">
                           {/* Player Token on Pitch */}
                           <div
-                            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 overflow-hidden shadow-xl bg-slate-950 ${
+                            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 overflow-hidden shadow-xl ${
                               isSelected
                                 ? 'border-amber-400 ring-4 ring-amber-400/40 glow-gold'
                                 : 'border-cyan-400 glow-cyan-sm'
                             }`}
                           >
-                            <img
-                              src={assigned.portrait}
-                              alt={assigned.name}
-                              className="w-full h-full object-cover"
-                            />
+                            <CharacterPanel player={assigned} size="sm" showBadge={false} />
                           </div>
 
                           {/* Clear Slot button on hover */}
@@ -595,11 +566,9 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
                       className="p-2 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-cyan-400/60 transition-all flex items-center justify-between gap-3 cursor-pointer group"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={player.portrait}
-                          alt={player.name}
-                          className="w-9 h-9 rounded-lg object-cover border border-slate-700 shrink-0"
-                        />
+                        <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 border border-slate-700">
+                          <CharacterPanel player={player} size="sm" showBadge={false} />
+                        </div>
                         <div className="min-w-0">
                           <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-300 truncate">
                             {player.name}
@@ -627,146 +596,20 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
         </div>
       )}
 
-      {/* TAB 2: TIER LIST ENGINE */}
+      {/* TAB 2: TIER LIST MAKER (TIERMAKER STYLE) */}
       {activeTab === 'tierlist' && (
-        <div className="space-y-6">
-          {/* Top Bar for Tier List */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex-1 w-full sm:w-auto">
-              <label className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
-                Tier List Title
-              </label>
-              <input
-                type="text"
-                value={tierListTitle}
-                onChange={(e) => setTierListTitle(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-100 font-heading font-bold"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label className="text-xs font-mono text-slate-400 flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isPublicTierList}
-                  onChange={(e) => setIsPublicTierList(e.target.checked)}
-                  className="rounded border-slate-700 text-cyan-500"
-                />
-                Public Showcase
-              </label>
-
-              <button
-                onClick={handleExportTierListCSV}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono flex items-center gap-1.5"
-              >
-                <Download className="w-3.5 h-3.5 text-cyan-400" /> Export CSV
-              </button>
-
-              <button
-                onClick={handleSaveTierList}
-                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold font-heading text-xs uppercase tracking-wider glow-gold flex items-center gap-1.5"
-              >
-                <Save className="w-3.5 h-3.5" /> Save Tier List
-              </button>
-            </div>
-          </div>
-
-          {/* Hardcoded Rows: S+, S, A, B, C */}
-          <div className="space-y-3">
-            {[
-              { tier: 'S+', color: 'bg-amber-500 text-slate-950 border-amber-400' },
-              { tier: 'S', color: 'bg-cyan-500 text-slate-950 border-cyan-400' },
-              { tier: 'A', color: 'bg-emerald-500 text-slate-950 border-emerald-400' },
-              { tier: 'B', color: 'bg-indigo-500 text-slate-100 border-indigo-400' },
-              { tier: 'C', color: 'bg-slate-700 text-slate-200 border-slate-600' },
-            ].map(({ tier, color }) => {
-              const assignedIds = tierRows[tier] || [];
-
-              return (
-                <div
-                  key={tier}
-                  className="rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row overflow-hidden shadow"
-                >
-                  {/* Tier label badge */}
-                  <div
-                    className={`w-full sm:w-24 shrink-0 py-3 sm:py-0 flex items-center justify-center font-heading font-black text-xl border-b sm:border-b-0 sm:border-r ${color}`}
-                  >
-                    {tier}
-                  </div>
-
-                  {/* Player tokens in this tier */}
-                  <div className="flex-1 p-3 flex flex-wrap gap-2.5 items-center min-h-[72px] bg-slate-950/60">
-                    {assignedIds.map((pid) => {
-                      const p = players.find((pl) => pl.id === pid);
-                      if (!p) return null;
-
-                      return (
-                        <div
-                          key={pid}
-                          className="relative group w-12 h-12 rounded-xl overflow-hidden border border-slate-700 hover:border-cyan-400 transition-colors"
-                        >
-                          <img src={p.portrait} alt={p.name} className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => handleRemoveFromTier(tier, pid)}
-                            className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 text-xs font-bold transition-opacity"
-                            title="Remove from tier"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      );
-                    })}
-
-                    {assignedIds.length === 0 && (
-                      <span className="text-xs text-slate-600 font-mono italic">
-                        Empty tier row. Assign strikers from the bench below.
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Quick Striker Bench for assigning to tiers */}
-          <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
-            <h3 className="text-xs font-bold font-heading uppercase text-cyan-400 mb-3">
-              AVAILABLE EGOIST ROSTER (CLICK TIER BADGE TO ASSIGN)
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
-              {players.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex flex-col items-center text-center"
-                >
-                  <img
-                    src={p.portrait}
-                    alt={p.name}
-                    className="w-10 h-10 rounded-lg object-cover mb-1.5"
-                  />
-                  <div className="text-[11px] font-bold text-slate-200 truncate w-full">
-                    {p.name.split(' ')[0]}
-                  </div>
-                  <div className="text-[10px] text-cyan-400 font-heading font-black mb-1.5">
-                    {p.overall_rating} OVR
-                  </div>
-
-                  <div className="flex gap-1">
-                    {['S+', 'S', 'A', 'B', 'C'].map((tr) => (
-                      <button
-                        key={tr}
-                        onClick={() => handleAddPlayerToTier(tr, p.id)}
-                        className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-300 transition-colors"
-                      >
-                        {tr}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <TierListMaker
+          players={players}
+          title={tierListTitle}
+          onTitleChange={setTierListTitle}
+          rows={tierRows}
+          onRowsChange={setTierRows}
+          isPublic={isPublicTierList}
+          onIsPublicChange={setIsPublicTierList}
+          onSave={handleSaveTierList}
+          onSelectPlayer={onSelectPlayer}
+          onToast={showToast}
+        />
       )}
 
       {/* TAB 3: SAVED FORMATIONS & TIER LISTS */}
@@ -878,7 +721,7 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
                         <button
                           onClick={() => {
                             setTierListTitle(tl.title);
-                            setTierRows(tl.tiers);
+                            setTierRows(hydrateTierRows(tl.tiers, tl.tier_meta));
                             setActiveTab('tierlist');
                             showToast(`Loaded ${tl.title} into tier canvas!`);
                           }}

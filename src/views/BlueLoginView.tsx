@@ -47,22 +47,27 @@ export const BlueLoginView: React.FC<BlueLoginViewProps> = ({ onLoginSuccess }) 
     setSuccessMsg('');
 
     const identifier = loginIdentifier.trim();
+    const password = loginPassword.trim();
     if (!identifier) {
       setErrorMsg('Please enter your username, email, or phone number.');
+      return;
+    }
+    if (!password) {
+      setErrorMsg('Please enter your password to log in.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await login(identifier, loginPassword.trim());
+      const res = await login(identifier, password);
       if (res.success) {
-        setSuccessMsg('Login successful! Redirecting to Blue Lock...');
+        setSuccessMsg('Login verified! Entering Blue Lock...');
         setTimeout(() => {
           onLoginSuccess?.();
-        }, 600);
+        }, 500);
       } else {
-        setErrorMsg(res.message || 'Invalid credentials. Please verify your info.');
+        setErrorMsg(res.message || 'Account not found. You must create an account first before logging in.');
       }
     } catch {
       setErrorMsg('Connection error. Please try again.');
@@ -89,7 +94,15 @@ export const BlueLoginView: React.FC<BlueLoginViewProps> = ({ onLoginSuccess }) 
       setErrorMsg('Please enter your email or phone number.');
       return;
     }
-    if (password && confirmPassword && password !== confirmPassword) {
+    if (!password) {
+      setErrorMsg('Please create a password for your account.');
+      return;
+    }
+    if (password.length < 4) {
+      setErrorMsg('Password must be at least 4 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
       setErrorMsg('Passwords do not match. Please re-enter.');
       return;
     }
@@ -147,9 +160,24 @@ export const BlueLoginView: React.FC<BlueLoginViewProps> = ({ onLoginSuccess }) 
 
         {/* Status Alerts */}
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-950/70 border border-rose-500/50 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>{errorMsg}</span>
+          <div className="mb-4 p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/60 text-rose-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{errorMsg}</span>
+            </div>
+            {errorMsg.toLowerCase().includes('create an account') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('register');
+                  setRegUsername(loginIdentifier.trim());
+                  setErrorMsg('');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold font-heading uppercase text-[10px] shrink-0 transition-colors cursor-pointer"
+              >
+                Sign Up Now →
+              </button>
+            )}
           </div>
         )}
 
@@ -217,8 +245,8 @@ export const BlueLoginView: React.FC<BlueLoginViewProps> = ({ onLoginSuccess }) 
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-heading">
                   Password
                 </label>
-                <span className="text-[11px] text-slate-500 font-mono">
-                  Optional for test users
+                <span className="text-[11px] text-cyan-400 font-mono">
+                  Required
                 </span>
               </div>
               <div className="relative">
@@ -228,6 +256,7 @@ export const BlueLoginView: React.FC<BlueLoginViewProps> = ({ onLoginSuccess }) 
                   onChange={(e) => setLoginPassword(e.target.value)}
                   placeholder="Enter your password..."
                   className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-10 pr-10 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 font-mono transition-all"
+                  required
                 />
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <button

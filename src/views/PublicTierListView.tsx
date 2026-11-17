@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { UserTierList, Player } from '../types.ts';
+import { CharacterPanel } from '../components/CharacterPanel.tsx';
+import { hydrateTierRows, getContrastTextColor } from '../components/TierListMaker.tsx';
 import { api } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { ArrowLeft, Eye, Heart, Share2, Layers, Check, Sparkles } from 'lucide-react';
+import { ArrowLeft, Eye, Heart, Share2, Layers, Check } from 'lucide-react';
 
 interface PublicTierListViewProps {
   tierListId: string;
@@ -162,66 +164,48 @@ export const PublicTierListView: React.FC<PublicTierListViewProps> = ({
         </div>
       </div>
 
-      {/* Tier Rows Render */}
-      <div className="space-y-3">
-        {[
-          { tier: 'S+', color: 'bg-amber-500 text-slate-950 border-amber-400' },
-          { tier: 'S', color: 'bg-cyan-500 text-slate-950 border-cyan-400' },
-          { tier: 'A', color: 'bg-emerald-500 text-slate-950 border-emerald-400' },
-          { tier: 'B', color: 'bg-indigo-500 text-slate-100 border-indigo-400' },
-          { tier: 'C', color: 'bg-slate-700 text-slate-200 border-slate-600' },
-        ].map(({ tier, color }) => {
-          const assignedIds = tierList.tiers[tier as keyof typeof tierList.tiers] || [];
-
-          return (
+      {/* TierMaker Board Render */}
+      <div className="rounded-lg border-2 border-slate-800 bg-[#0b0d13] overflow-hidden shadow-2xl divide-y-2 divide-[#0b0d13]">
+        {hydrateTierRows(tierList.tiers, tierList.tier_meta).map((row) => (
+          <div key={row.id} className="flex items-stretch min-h-[84px]">
             <div
-              key={tier}
-              className="rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row overflow-hidden shadow"
+              style={{ backgroundColor: row.color, color: getContrastTextColor(row.color) }}
+              className="w-20 sm:w-28 shrink-0 px-2 py-2 flex items-center justify-center text-center font-heading font-black text-base sm:text-xl leading-tight break-words border-r-2 border-[#0b0d13]"
             >
-              <div
-                className={`w-full sm:w-24 shrink-0 py-3 sm:py-0 flex items-center justify-center font-heading font-black text-xl border-b sm:border-b-0 sm:border-r ${color}`}
-              >
-                {tier}
-              </div>
-
-              <div className="flex-1 p-3.5 flex flex-wrap gap-3 items-center min-h-[80px] bg-slate-950/60">
-                {assignedIds.map((pid) => {
-                  const p = players.find((pl) => pl.id === pid);
-                  if (!p) return null;
-
-                  return (
-                    <div
-                      key={pid}
-                      onClick={() => onSelectPlayer(p)}
-                      className="cursor-pointer group flex items-center gap-2 p-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-400 transition-colors"
-                      title={`Scout ${p.name}`}
-                    >
-                      <img
-                        src={p.portrait}
-                        alt={p.name}
-                        className="w-10 h-10 rounded-lg object-cover"
-                      />
-                      <div className="pr-1.5">
-                        <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">
-                          {p.name.split(' ')[0]}
-                        </div>
-                        <div className="text-[10px] font-mono text-cyan-400 font-bold">
-                          {p.overall_rating} OVR
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {assignedIds.length === 0 && (
-                  <span className="text-xs text-slate-600 font-mono italic">
-                    No strikers ranked in this tier.
-                  </span>
-                )}
-              </div>
+              {row.label}
             </div>
-          );
-        })}
+
+            <div className="flex-1 p-1.5 flex flex-wrap gap-1.5 items-center content-start min-h-[84px] bg-[#181a22]">
+              {row.playerIds.map((pid) => {
+                const p = players.find((pl) => pl.id === pid);
+                if (!p) return null;
+
+                return (
+                  <button
+                    key={pid}
+                    type="button"
+                    onClick={() => onSelectPlayer(p)}
+                    className="relative group w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] shrink-0 overflow-hidden bg-slate-950 border border-white/10 hover:border-cyan-400 hover:scale-[1.03] transition-transform cursor-pointer"
+                    title={`Scout ${p.name} (${p.overall_rating} OVR)`}
+                  >
+                    <CharacterPanel player={p} size="sm" showBadge={false} />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <span className="text-[10px] font-semibold text-white block truncate leading-tight text-center">
+                        {p.name.split(' ')[0]}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+
+              {row.playerIds.length === 0 && (
+                <span className="px-3 text-xs text-slate-600 font-mono">
+                  No strikers ranked in this tier.
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

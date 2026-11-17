@@ -120,11 +120,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                     className="flex items-center gap-2 p-1.5 pr-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 transition-colors"
                   >
-                    <img
-                      src={user.avatar}
-                      alt={user.username}
-                      className="w-7 h-7 rounded-lg object-cover border border-cyan-400/50"
-                    />
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center font-heading font-black text-xs text-white border border-cyan-400/50 shadow-sm shrink-0">
+                      {user.username.charAt(0).toUpperCase()}
+                    </div>
                     <div className="text-left">
                       <span className="text-xs font-bold text-slate-200 block leading-tight">
                         {user.username}
@@ -226,7 +224,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             {user ? (
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
-                  <img src={user.avatar} alt={user.username} className="w-7 h-7 rounded-lg" />
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center font-heading font-black text-xs text-white border border-cyan-400/50 shadow-sm shrink-0">
+                    {user.username.charAt(0).toUpperCase()}
+                  </div>
                   <span className="text-xs font-bold text-slate-200">{user.username}</span>
                 </div>
                 <button

@@ -77,18 +77,18 @@ export interface UserLineup {
   created_at: string;
 }
 
+export interface TierMetaItem {
+  label: string;
+  color: string;
+}
+
 export interface UserTierList {
   id: string;
   user_id: string;
   username: string;
   title: string;
-  tiers: {
-    'S+': string[];
-    'S': string[];
-    'A': string[];
-    'B': string[];
-    'C': string[];
-  };
+  tiers: Record<string, string[]>;
+  tier_meta?: TierMetaItem[];
   is_public: boolean;
   view_count: number;
   like_count: number;

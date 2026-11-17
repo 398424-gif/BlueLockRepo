@@ -53,7 +53,7 @@ function initDB(): DBState {
                 id: 'user-demo-egoist',
                 username: 'Isagi_Egoist',
                 email: 'egoist@bluelock.jp',
-                avatar: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=100&auto=format&fit=crop&q=80',
+                avatar: '',
                 role: 'egoist',
                 created_at: new Date().toISOString(),
               },
@@ -95,7 +95,7 @@ function initDB(): DBState {
         id: 'user-demo-egoist',
         username: 'Isagi_Egoist',
         email: 'egoist@bluelock.jp',
-        avatar: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=100&auto=format&fit=crop&q=80',
+        avatar: '',
         role: 'egoist',
         created_at: new Date().toISOString(),
       },
@@ -304,7 +304,7 @@ app.get('/api/tier-lists/:id', (req, res) => {
 });
 
 app.post('/api/tier-lists', (req, res) => {
-  const { title, tiers, user_id, username, is_public } = req.body;
+  const { title, tiers, tier_meta, user_id, username, is_public } = req.body;
   if (!title || !tiers) {
     return res.status(400).json({ success: false, message: 'Title and tiers mapping required' });
   }
@@ -315,6 +315,7 @@ app.post('/api/tier-lists', (req, res) => {
     username: username || 'Anonymous Egoist',
     title: title.trim(),
     tiers,
+    ...(Array.isArray(tier_meta) ? { tier_meta } : {}),
     is_public: is_public !== false,
     view_count: 1,
     like_count: 0,
@@ -477,25 +478,14 @@ app.post('/api/auth/login', (req, res) => {
   });
 
   if (!user) {
-    // If user does not exist yet, allow seamless auto-creation if valid format
-    const autoUser: User = {
-      id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      username: lookup.includes('@') ? lookup.split('@')[0] : lookup,
-      email: lookup.includes('@') ? lookupLower : `${lookupLower.replace(/\s+/g, '_')}@bluelock.jp`,
-      phone: cleanPhoneLookup || undefined,
-      password: inputPass || undefined,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(lookup)}`,
-      role: 'egoist',
-      created_at: new Date().toISOString(),
-    };
-    db.users.push(autoUser);
-    saveDB();
-    const { password: _, ...safeUser } = autoUser;
-    return res.json({ success: true, user: safeUser });
+    return res.status(401).json({
+      success: false,
+      message: 'Account not found. You must create an account first before logging in.',
+    });
   }
 
-  // Check password if set on account and provided
-  if (user.password && inputPass && user.password !== inputPass) {
+  // Check password if set on account
+  if (user.password && (!inputPass || user.password !== inputPass)) {
     return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
   }
 
@@ -512,6 +502,8 @@ app.get('/api/likes', (req, res) => {
 
 // Start dev or production server
 async function startServer() {
+  app.use('/portraits', express.static(path.join(__dirname, 'public', 'portraits')));
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({

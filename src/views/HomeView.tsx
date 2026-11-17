@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Player, UserTierList, SiteConfig } from '../types.ts';
 import { ChapterCountdown } from '../components/ChapterCountdown.tsx';
 import { EgoRadarChart } from '../components/EgoRadarChart.tsx';
+import { CharacterPanel } from '../components/CharacterPanel.tsx';
 import { useSpoilers } from '../context/SpoilerContext.tsx';
 import {
   Flame,
@@ -126,15 +127,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
               <div className="md:col-span-5 flex flex-col items-center md:items-start text-center md:text-left">
-                <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-cyan-400/60 mb-3 shadow-lg glow-cyan-sm">
-                  <img
-                    src={spotlightPlayer.portrait}
-                    alt={spotlightPlayer.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-cyan-500 text-slate-950 font-black text-xs font-heading">
-                    {spotlightPlayer.rank_tier}
-                  </div>
+                <div className="relative mb-3">
+                  <CharacterPanel player={spotlightPlayer} size="lg" />
                 </div>
 
                 <div className="flex items-baseline gap-2">
@@ -212,11 +206,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2.5 pt-3 border-t border-slate-800/60">
-              <img
-                src={currentQuotePlayer.portrait}
-                alt={currentQuotePlayer.name}
-                className="w-8 h-8 rounded-full object-cover border border-cyan-500/40"
-              />
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-cyan-500/40 shrink-0">
+                <CharacterPanel player={currentQuotePlayer} size="sm" showBadge={false} />
+              </div>
               <div className="min-w-0">
                 <div className="text-xs font-bold text-slate-200 truncate">
                   {currentQuotePlayer.name}
@@ -253,8 +245,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </p>
           </div>
           <button
-            onClick={() => onNavigate('builder')}
-            className="px-3 py-1.5 rounded-lg border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 text-xs font-mono font-bold transition-all"
+            onClick={() => onNavigate('builder', { tab: 'tierlist' })}
+            className="px-3 py-1.5 rounded-lg border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 text-xs font-mono font-bold transition-all cursor-pointer"
           >
             Create Your Own Tier List +
           </button>
@@ -281,21 +273,28 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <span>{tl.view_count} scout views</span>
               </div>
               <div className="flex gap-1">
-                {(tl.tiers['S+'] || []).slice(0, 3).map((pid) => {
-                  const p = players.find((pl) => pl.id === pid);
+                {(() => {
+                  const allRanked = Object.values(tl.tiers || {}).flat();
                   return (
-                    <div
-                      key={pid}
-                      className="w-7 h-7 rounded border border-amber-400/40 bg-slate-900 overflow-hidden"
-                      title={p?.name || pid}
-                    >
-                      {p && <img src={p.portrait} alt={p.name} className="w-full h-full object-cover" />}
-                    </div>
+                    <>
+                      {allRanked.slice(0, 3).map((pid) => {
+                        const p = players.find((pl) => pl.id === pid);
+                        return (
+                          <div
+                            key={pid}
+                            className="w-7 h-7 rounded border border-amber-400/40 overflow-hidden shrink-0"
+                            title={p?.name || pid}
+                          >
+                            {p && <CharacterPanel player={p} size="sm" showBadge={false} />}
+                          </div>
+                        );
+                      })}
+                      <span className="text-[10px] font-mono text-slate-500 self-center pl-1">
+                        {allRanked.length - 3 > 0 ? `+${allRanked.length - 3} more` : ''}
+                      </span>
+                    </>
                   );
-                })}
-                <span className="text-[10px] font-mono text-slate-500 self-center pl-1">
-                  +{(tl.tiers['S+'] || []).length - 3 > 0 ? `${(tl.tiers['S+'] || []).length - 3} more` : ''}
-                </span>
+                })()}
               </div>
             </div>
           ))}
