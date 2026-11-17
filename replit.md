@@ -18,6 +18,7 @@
 ## Existing behavior and limitations
 
 - The initial screen requires signing in. The seeded demo username is `Isagi_Egoist`; its password can be left blank.
-- This is demo authentication, not production security: passwords are stored as plain text, passwordless login is permitted, and unknown login identifiers can create accounts. Do not use real passwords or sensitive information.
+- This is demo authentication, not production security: passwords are stored as plain text and the seeded demo account is passwordless. Password-protected accounts require their password, and unknown login identifiers must register first. Do not use real passwords or sensitive information.
 - App data is saved locally in `data/db.json`, which is excluded from Git. Preserve this file when working with existing data. Local JSON storage is not a production durability strategy.
+- Keep the runtime-data ignore rule anchored as `/data/`; the app's required `src/data/seedData.ts` is source code and must remain tracked.
 - Setup verification covered the rendered sign-in page, type check, frontend build, and API responses. The signed-in UI was not visually verified.
