@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Player, UserTierList, SiteConfig } from '../types.ts';
 import { ChapterCountdown } from '../components/ChapterCountdown.tsx';
 import { EgoRadarChart } from '../components/EgoRadarChart.tsx';
@@ -8,7 +8,6 @@ import {
   Flame,
   Swords,
   Users,
-  Award,
   BookOpen,
   ArrowRight,
   Eye,
@@ -17,6 +16,11 @@ import {
   BrainCircuit,
   Shuffle,
   Quote,
+  Zap,
+  Layers,
+  Compass,
+  X,
+  ChevronUp,
 } from 'lucide-react';
 
 interface HomeViewProps {
@@ -51,6 +55,28 @@ export const HomeView: React.FC<HomeViewProps> = ({
   // Active essay tab in Psychology hub
   const [activeEssay, setActiveEssay] = useState<'egoism' | 'flow' | 'zero'>('egoism');
 
+  // Floating Quick Actions menu state
+  const [quickActionsOpen, setQuickActionsOpen] = useState<boolean>(false);
+  const quickMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!quickActionsOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (quickMenuRef.current && !quickMenuRef.current.contains(e.target as Node)) {
+        setQuickActionsOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setQuickActionsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [quickActionsOpen]);
+
   // Sorted public tier lists by (view_count + like_count) DESC
   const trendingTierLists = [...tierLists]
     .filter((t) => t.is_public)
@@ -75,7 +101,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </h1>
 
           <p className="text-slate-300 text-sm md:text-base mt-3 leading-relaxed">
-            Scout 25 elite strikers across the Neo Egoist League. Conduct 6-axis ego radar duels, build high-chemistry tactical squads, and analyze the psychological architecture of Flow and Zero State.
+            Scout {players.length} elite characters across the Neo Egoist League. Conduct 6-axis ego radar duels, build high-chemistry tactical squads, and analyze the psychological architecture of Flow and Zero State.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 mt-6">
@@ -394,6 +420,85 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Floating Quick Actions Menu */}
+      <div ref={quickMenuRef} className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2">
+        {quickActionsOpen && (
+          <div
+            role="menu"
+            aria-label="Quick Actions"
+            className="w-60 rounded-xl bg-slate-900/95 backdrop-blur-md border border-slate-700/80 shadow-2xl p-1.5 space-y-1 animate-fade-in"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setQuickActionsOpen(false);
+                onNavigate('builder', { tab: 'lineup' });
+              }}
+              className="w-full min-h-[42px] px-3 py-2 rounded-lg text-left text-xs font-medium text-slate-100 hover:bg-slate-800 hover:text-cyan-300 transition-colors flex items-center justify-between gap-3 cursor-pointer whitespace-nowrap"
+            >
+              <span className="flex items-center gap-2.5">
+                <Users className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>Create New Squad</span>
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            </button>
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setQuickActionsOpen(false);
+                onNavigate('builder', { tab: 'saved' });
+              }}
+              className="w-full min-h-[42px] px-3 py-2 rounded-lg text-left text-xs font-medium text-slate-100 hover:bg-slate-800 hover:text-amber-300 transition-colors flex items-center justify-between gap-3 cursor-pointer whitespace-nowrap"
+            >
+              <span className="flex items-center gap-2.5">
+                <Layers className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>View My Tier Lists</span>
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            </button>
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setQuickActionsOpen(false);
+                onNavigate('strikers');
+              }}
+              className="w-full min-h-[42px] px-3 py-2 rounded-lg text-left text-xs font-medium text-slate-100 hover:bg-slate-800 hover:text-emerald-300 transition-colors flex items-center justify-between gap-3 cursor-pointer whitespace-nowrap"
+            >
+              <span className="flex items-center gap-2.5">
+                <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Open Scout Hub</span>
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            </button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          aria-expanded={quickActionsOpen}
+          aria-haspopup="menu"
+          onClick={() => setQuickActionsOpen((prev) => !prev)}
+          className="min-h-[44px] px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-heading font-bold text-xs tracking-wide shadow-2xl border border-cyan-300/60 flex items-center gap-2 transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 cursor-pointer whitespace-nowrap shrink-0"
+        >
+          {quickActionsOpen ? (
+            <X className="w-4 h-4 shrink-0" />
+          ) : (
+            <Zap className="w-4 h-4 shrink-0" />
+          )}
+          <span>Quick Actions</span>
+          <ChevronUp
+            className={`w-3.5 h-3.5 shrink-0 transition-transform duration-150 ${
+              quickActionsOpen ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
       </div>
     </div>
   );

@@ -168,9 +168,19 @@ export const TierListMaker: React.FC<TierListMakerProps> = ({
       }
       if (poolClubFilter !== 'ALL') {
         if (poolClubFilter === 'MASTERS') {
-          if (p.rank_tier !== 'S+' || p.age! < 22) {
-            const masters = new Set(['noel-noa', 'marc-snuffy', 'chris-prince', 'lavinho', 'julian-loki', 'jinpachi-ego']);
-            if (!masters.has(p.id)) return false;
+          const masters = new Set([
+            'noel-noa', 'marc-snuffy', 'chris-prince', 'lavinho', 'julian-loki',
+            'leonardo-luna', 'adam-blake', 'dada-silva', 'pablo-cavasoz',
+            'charles-chevalier', 'bunny-iglesias', 'vivian-hugo', 'jinpachi-ego',
+          ]);
+          if (!masters.has(p.id)) return false;
+        } else if (poolClubFilter === 'SELECTION') {
+          if (!['Team Z', 'Team Y', 'Team W', 'Blue Lock Entrance', 'Blue Lock Facility', 'Blue Lock Top 35', 'Blue Lock Side-B'].includes(p.team)) {
+            return false;
+          }
+        } else if (poolClubFilter === 'INTL') {
+          if (!['Nigeria U-20', 'France U-20', 'Germany U-20', 'Japan U-20', 'World Five'].includes(p.team)) {
+            return false;
           }
         } else if (!p.team.toLowerCase().includes(poolClubFilter.toLowerCase())) {
           return false;
@@ -540,6 +550,8 @@ export const TierListMaker: React.FC<TierListMakerProps> = ({
     { id: 'Manshine', label: 'Manshine' },
     { id: 'Ubers', label: 'Ubers' },
     { id: 'Barcha', label: 'Barcha' },
+    { id: 'SELECTION', label: 'Blue Lock' },
+    { id: 'INTL', label: 'U-20 / World' },
     { id: 'MASTERS', label: 'Masters / XI' },
   ];
 
@@ -955,7 +967,7 @@ export const TierListMaker: React.FC<TierListMakerProps> = ({
           ) : (
             <div className="py-6 text-center text-xs font-mono text-slate-500">
               {totalUnrankedCount === 0
-                ? 'All 25 Blue Lock players are ranked on the board. Drag any portrait here or click × on a tile to unrank.'
+                ? `All ${players.length} Blue Lock characters are ranked on the board. Drag any portrait here or click × on a tile to unrank.`
                 : 'No unranked players match your current filter.'}
             </div>
           )}

@@ -40,8 +40,25 @@ function initDB(): DBState {
     try {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
       const parsed = JSON.parse(content) as Partial<DBState>;
-      return {
-        players: parsed.players?.length ? parsed.players : PLAYERS_SEED,
+      const existingMap = new Map((parsed.players || []).map((p) => [p.id, p]));
+      const mergedPlayers = PLAYERS_SEED.map((seedPlayer) => {
+        const existing = existingMap.get(seedPlayer.id);
+        const portraitPath = seedPlayer.portrait || `/portraits/${seedPlayer.id}.png`;
+        if (existing) {
+          return {
+            ...seedPlayer,
+            portrait: portraitPath,
+            like_count: Math.max(seedPlayer.like_count, existing.like_count || 0),
+          };
+        }
+        return {
+          ...seedPlayer,
+          portrait: portraitPath,
+        };
+      });
+
+      const hydratedState: DBState = {
+        players: mergedPlayers.length ? mergedPlayers : PLAYERS_SEED,
         notes: parsed.notes || [],
         lineups: parsed.lineups || INITIAL_USER_LINEUPS,
         tierLists: parsed.tierLists || INITIAL_PUBLIC_TIER_LISTS,
@@ -60,6 +77,8 @@ function initDB(): DBState {
             ],
         likes: parsed.likes || [],
       };
+      saveDB(hydratedState);
+      return hydratedState;
     } catch (e) {
       console.error('Error loading db.json, falling back to seed data:', e);
     }

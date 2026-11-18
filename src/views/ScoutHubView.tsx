@@ -130,7 +130,7 @@ export const ScoutHubView: React.FC<ScoutHubViewProps> = ({
             BLUE LOCK DATABASE HUB
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Filter, inspect, and evaluate all 25 world-class candidates, New Gen XI aces, and master coaches.
+            Filter, inspect, and evaluate all {players.length} Blue Lock candidates, New Gen XI aces, U-20 stars, and master coaches.
           </p>
         </div>
 

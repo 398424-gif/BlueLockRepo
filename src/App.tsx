@@ -288,7 +288,7 @@ function AppContent() {
 
           <div className="flex items-center gap-4 text-xs font-mono text-slate-400">
             <span className="flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5 text-cyan-400" /> 25 Strikers
+              <Shield className="w-3.5 h-3.5 text-cyan-400" /> {players.length} Characters
             </span>
             <span className="flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Recharts 6-Axis Radar

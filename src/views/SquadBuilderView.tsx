@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Papa from 'papaparse';
 import confetti from 'canvas-confetti';
 import { Player, UserLineup, UserTierList } from '../types.ts';
@@ -213,7 +213,7 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
   };
 
   // Load user saved lineups/tier lists
-  const loadSavedData = async () => {
+  const loadSavedData = useCallback(async () => {
     if (!user) return;
     try {
       setLoadingSaved(true);
@@ -228,13 +228,16 @@ export const SquadBuilderView: React.FC<SquadBuilderViewProps> = ({
     } finally {
       setLoadingSaved(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'saved' && user) {
+      loadSavedData();
+    }
+  }, [activeTab, user, loadSavedData]);
 
   const handleTabChange = (tab: 'lineup' | 'tierlist' | 'saved') => {
     setActiveTab(tab);
-    if (tab === 'saved' && user) {
-      loadSavedData();
-    }
   };
 
   return (
